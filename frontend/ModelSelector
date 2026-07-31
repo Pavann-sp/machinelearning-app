@@ -1,0 +1,34 @@
+const models = [
+  "Decision Trees",
+  "Random Forest & XGBoost",
+  "RNN",
+  "ANN",
+  "KNN / K-Means / GMM",
+  "Regression",
+  "CNN",
+  "HMM / Naive Bayes",
+  "DBSCAN / Hierarchical",
+  "LDA / QDA",
+  "SVM",
+  "PCA"
+];
+
+function ModelSelector() {
+  return (
+    <div className="section">
+      <label>Select Model</label>
+
+      <select>
+        <option>Select a model</option>
+
+        {models.map((model) => (
+          <option key={model}>
+            {model}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
+export default ModelSelector;
