@@ -1,0 +1,14 @@
+function FileUpload() {
+  return (
+    <div className="section">
+      <label>Upload Dataset</label>
+
+      <input
+        type="file"
+        accept=".csv"
+      />
+    </div>
+  );
+}
+
+export default FileUpload;
