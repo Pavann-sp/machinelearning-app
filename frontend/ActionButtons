@@ -1,0 +1,13 @@
+function ActionButtons() {
+  return (
+    <div className="buttons">
+      <button>Train</button>
+
+      <button>Evaluate</button>
+
+      <button>Predict</button>
+    </div>
+  );
+}
+
+export default ActionButtons;
