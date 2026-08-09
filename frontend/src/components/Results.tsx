@@ -1,0 +1,11 @@
+function Results() {
+  return (
+    <div className="card">
+      <h2>Results</h2>
+
+      <p>No model has been run yet.</p>
+    </div>
+  );
+}
+
+export default Results;
