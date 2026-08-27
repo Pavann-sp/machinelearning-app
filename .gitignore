@@ -11,3 +11,4 @@ dist/
 *.pkl
 *.pt
 *.h5
+.claude/
