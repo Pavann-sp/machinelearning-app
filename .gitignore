@@ -11,3 +11,6 @@ dist/
 *.pkl
 *.pt
 *.h5
+.claude/
+CLAUDE.md
+BUILD_SESSIONS.md
