@@ -1,8 +1,8 @@
 """FastAPI application entry point (ARCHITECTURE.md SS3).
 
-Session 2 wires up the data (upload/EDA) routes and the error-handling
-that every later session's routes reuse. Sessions 3/4 add models,
-training, and prediction routers here.
+Session 2 wired up the data (upload/EDA) routes and the error-handling
+that every later session's routes reuse. Session 3 adds the models and
+training routers here. Session 4 adds prediction.
 """
 from fastapi import FastAPI, Request
 from fastapi.encoders import jsonable_encoder
@@ -10,11 +10,13 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
 from app.core.errors import AppError
-from app.routes import data
+from app.routes import data, models, training
 
 app = FastAPI(title="ML Integration Platform")
 
 app.include_router(data.router)
+app.include_router(models.router)
+app.include_router(training.router)
 
 
 @app.exception_handler(AppError)
