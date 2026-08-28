@@ -11,7 +11,7 @@ from fastapi import APIRouter
 from app.core import storage, training_store
 from app.core.compatibility import incompatibility_reason
 from app.core.errors import DataValidationError, NotFoundError
-from app.core.metrics import compute_metrics
+from app.core.metrics import compute_metrics, compute_plot_data
 from app.core.preprocessing import fit_transform_split
 from app.core.registry import REGISTRY
 from app.core.training_store import TrainedModelResult
@@ -94,6 +94,7 @@ def _train_one(
 
     y_true = y_test if model_type in ("classifier", "regressor") else None
     metrics = compute_metrics(model_type, X_test, y_true, predictions)
+    plot_data = compute_plot_data(model_type, X_test, y_true, predictions)
 
     return TrainedModelResult(
         model_key=spec.model_key,
@@ -101,6 +102,7 @@ def _train_one(
         metrics=metrics,
         metadata=metadata,
         visualization_data=visualization_data,
+        plot_data=plot_data,
     )
 
 
@@ -116,6 +118,7 @@ def _to_response(result: TrainedModelResult) -> TrainedModelResponse:
         n_features=md["n_features"],
         feature_importance=md["feature_importance"],
         visualization_data=result.visualization_data,
+        plot_data=result.plot_data,
     )
 
 

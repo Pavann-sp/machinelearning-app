@@ -524,6 +524,10 @@ export interface components {
             visualization_data: {
                 [key: string]: unknown;
             } | null;
+            /** Plot Data */
+            plot_data: {
+                [key: string]: unknown;
+            } | null;
         };
         /** ValidationError */
         ValidationError: {

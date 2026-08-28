@@ -1,8 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
 import { ScreenPanel } from "./components/ScreenPanel";
 import { StepShell } from "./components/StepShell";
+import { CompareScreen } from "./components/screens/CompareScreen";
 import { EdaScreen } from "./components/screens/EdaScreen";
 import { ModelSelectionScreen } from "./components/screens/ModelSelectionScreen";
+import { PredictScreen } from "./components/screens/PredictScreen";
+import { ResultsScreen } from "./components/screens/ResultsScreen";
 import { TrainingScreen } from "./components/screens/TrainingScreen";
 import { UploadScreen } from "./components/screens/UploadScreen";
 import { useModels } from "./hooks/useModels";
@@ -11,21 +14,6 @@ import type { DataProfileResponse } from "./hooks/useDataset";
 import type { StepId } from "./types/steps";
 
 const DEFAULT_TEST_SIZE = 0.2;
-
-const PLACEHOLDER_LABELS: Record<"results" | "predict" | "compare", string> = {
-  results: "Results",
-  predict: "Predict on new data",
-  compare: "Compare",
-};
-
-function StepPlaceholder({ step }: { step: "results" | "predict" | "compare" }) {
-  return (
-    <ScreenPanel>
-      <h1 className="text-lg font-medium text-ink">{PLACEHOLDER_LABELS[step]}</h1>
-      <p className="mt-1 text-sm text-muted">Screen lands in Session 7.</p>
-    </ScreenPanel>
-  );
-}
 
 function NoDatasetNotice() {
   return (
@@ -118,8 +106,24 @@ function App() {
             ) : (
               <NoDatasetNotice />
             );
-          default:
-            return <StepPlaceholder step={step} />;
+          case "results":
+            return profile ? (
+              <ResultsScreen results={trainingState.results} />
+            ) : (
+              <NoDatasetNotice />
+            );
+          case "predict":
+            return profile ? (
+              <PredictScreen profile={profile} trainingResults={trainingState.results} />
+            ) : (
+              <NoDatasetNotice />
+            );
+          case "compare":
+            return profile ? (
+              <CompareScreen trainingResults={trainingState.results} />
+            ) : (
+              <NoDatasetNotice />
+            );
         }
       }}
     />
