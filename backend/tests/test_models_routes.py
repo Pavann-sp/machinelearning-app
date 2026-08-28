@@ -5,10 +5,8 @@ Done-when criterion (compatibility half): a clusterer requested on
 labelled data comes back as incompatible with a reason, not an error.
 """
 import pytest
-from fastapi.testclient import TestClient
 
 from app.core import storage
-from app.main import app
 
 EXPECTED_TYPES = {
     "logistic_regression": "classifier",
@@ -23,11 +21,6 @@ def _clean_storage():
     storage.clear()
     yield
     storage.clear()
-
-
-@pytest.fixture
-def client():
-    return TestClient(app)
 
 
 def _load_sample(client, sample_id: str) -> str:

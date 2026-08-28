@@ -7,10 +7,8 @@ clusterer requested on labelled data comes back as incompatible with a
 reason, not an error.
 """
 import pytest
-from fastapi.testclient import TestClient
 
 from app.core import storage, training_store
-from app.main import app
 
 
 @pytest.fixture(autouse=True)
@@ -20,11 +18,6 @@ def _clean_stores():
     yield
     storage.clear()
     training_store.clear()
-
-
-@pytest.fixture
-def client():
-    return TestClient(app)
 
 
 def _load_sample(client, sample_id: str) -> str:
