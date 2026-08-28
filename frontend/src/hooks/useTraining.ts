@@ -59,5 +59,12 @@ export function useTraining() {
     return data;
   }, []);
 
-  return { results, loading, error, train, fetchResults };
+  // Clears a past run when the upstream selection (dataset or chosen models)
+  // changes, so a stale result is never shown against a new choice.
+  const reset = useCallback(() => {
+    setResults(null);
+    setError(null);
+  }, []);
+
+  return { results, loading, error, train, fetchResults, reset };
 }
