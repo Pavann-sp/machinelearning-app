@@ -9,10 +9,8 @@ import io
 import numpy as np
 import pandas as pd
 import pytest
-from fastapi.testclient import TestClient
 
 from app.core import storage
-from app.main import app
 
 
 @pytest.fixture(autouse=True)
@@ -20,11 +18,6 @@ def _clean_storage():
     storage.clear()
     yield
     storage.clear()
-
-
-@pytest.fixture
-def client():
-    return TestClient(app)
 
 
 def _csv_bytes(df: pd.DataFrame) -> io.BytesIO:
