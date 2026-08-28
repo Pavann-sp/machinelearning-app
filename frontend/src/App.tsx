@@ -1,62 +1,127 @@
-import type { ReactNode } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { ScreenPanel } from "./components/ScreenPanel";
 import { StepShell } from "./components/StepShell";
+import { EdaScreen } from "./components/screens/EdaScreen";
+import { ModelSelectionScreen } from "./components/screens/ModelSelectionScreen";
+import { TrainingScreen } from "./components/screens/TrainingScreen";
+import { UploadScreen } from "./components/screens/UploadScreen";
 import { useModels } from "./hooks/useModels";
+import { useTraining } from "./hooks/useTraining";
+import type { DataProfileResponse } from "./hooks/useDataset";
 import type { StepId } from "./types/steps";
 
-function ScreenPanel({ children }: { children: ReactNode }) {
-  return (
-    <section className="mx-auto max-w-[640px] rounded-panel border border-rule bg-surface p-6 text-ink">
-      {children}
-    </section>
-  );
-}
+const DEFAULT_TEST_SIZE = 0.2;
 
-// Screens 1-7 land in Sessions 6-7. This placeholder doubles as the round
-// trip proof for Session 5: a real fetch through the typed client against
-// the running backend's model registry.
-function UploadPlaceholder() {
-  const { models, loading, error } = useModels();
-
-  return (
-    <ScreenPanel>
-      <h1 className="text-lg font-medium">Upload</h1>
-      <p className="mt-1 text-sm text-muted">
-        Screen lands in Session 6. This confirms the typed client reaches the
-        running backend.
-      </p>
-      <p className="mt-4 font-mono text-sm">
-        {loading && "Loading model registry…"}
-        {error && `Registry request failed: ${error.message}`}
-        {models && `${models.length} models registered.`}
-      </p>
-    </ScreenPanel>
-  );
-}
-
-const PLACEHOLDER_LABELS: Record<Exclude<StepId, "upload">, string> = {
-  eda: "EDA",
-  "model-selection": "Model selection",
-  training: "Training",
+const PLACEHOLDER_LABELS: Record<"results" | "predict" | "compare", string> = {
   results: "Results",
   predict: "Predict on new data",
   compare: "Compare",
 };
 
-function StepPlaceholder({ step }: { step: Exclude<StepId, "upload"> }) {
+function StepPlaceholder({ step }: { step: "results" | "predict" | "compare" }) {
   return (
     <ScreenPanel>
-      <h1 className="text-lg font-medium">{PLACEHOLDER_LABELS[step]}</h1>
-      <p className="mt-1 text-sm text-muted">Screen lands in a later session.</p>
+      <h1 className="text-lg font-medium text-ink">{PLACEHOLDER_LABELS[step]}</h1>
+      <p className="mt-1 text-sm text-muted">Screen lands in Session 7.</p>
+    </ScreenPanel>
+  );
+}
+
+function NoDatasetNotice() {
+  return (
+    <ScreenPanel>
+      <p className="text-sm text-muted">Upload a dataset or load a sample first.</p>
     </ScreenPanel>
   );
 }
 
 function App() {
+  const [profile, setProfile] = useState<DataProfileResponse | null>(null);
+  const [testSize, setTestSize] = useState(DEFAULT_TEST_SIZE);
+  const [selectedModelKeys, setSelectedModelKeys] = useState<string[]>([]);
+
+  const modelsState = useModels();
+  const trainingState = useTraining();
+  const { checkCompatibility } = modelsState;
+  const { reset: resetTraining } = trainingState;
+
+  const handleProfile = useCallback((next: DataProfileResponse) => {
+    setProfile(next);
+  }, []);
+
+  // A new dataset invalidates any selection and training run made against
+  // the previous one, and needs its own compatibility check.
+  useEffect(() => {
+    if (!profile) return;
+    setSelectedModelKeys([]);
+    resetTraining();
+    checkCompatibility(profile.data_id);
+  }, [profile, checkCompatibility, resetTraining]);
+
+  const toggleModel = useCallback(
+    (key: string) => {
+      setSelectedModelKeys((prev) =>
+        prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key],
+      );
+      // The prior run no longer matches the selection it would be shown against.
+      resetTraining();
+    },
+    [resetTraining],
+  );
+
+  const isStepComplete: Partial<Record<StepId, boolean>> = {
+    upload: profile !== null,
+    eda: profile !== null,
+    "model-selection": selectedModelKeys.length > 0,
+    training: trainingState.results !== null,
+  };
+
   return (
     <StepShell
-      renderStep={(step) =>
-        step === "upload" ? <UploadPlaceholder /> : <StepPlaceholder step={step} />
-      }
+      isStepComplete={isStepComplete}
+      renderStep={(step) => {
+        switch (step) {
+          case "upload":
+            return (
+              <UploadScreen
+                profile={profile}
+                onProfile={handleProfile}
+                testSize={testSize}
+                onTestSizeChange={setTestSize}
+              />
+            );
+          case "eda":
+            return profile ? <EdaScreen profile={profile} /> : <NoDatasetNotice />;
+          case "model-selection":
+            return profile ? (
+              <ModelSelectionScreen
+                models={modelsState.models}
+                compatibility={modelsState.compatibility}
+                loading={modelsState.loading}
+                error={modelsState.error}
+                selected={selectedModelKeys}
+                onToggle={toggleModel}
+              />
+            ) : (
+              <NoDatasetNotice />
+            );
+          case "training":
+            return profile ? (
+              <TrainingScreen
+                dataId={profile.data_id}
+                models={modelsState.models}
+                selectedModelKeys={selectedModelKeys}
+                testSize={testSize}
+                onTestSizeChange={setTestSize}
+                trainingState={trainingState}
+              />
+            ) : (
+              <NoDatasetNotice />
+            );
+          default:
+            return <StepPlaceholder step={step} />;
+        }
+      }}
     />
   );
 }
