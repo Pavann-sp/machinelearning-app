@@ -5,9 +5,10 @@ interface ConfusionMatrixChartProps {
 
 /** Screen 5's classifier chart (frontend.md). Rows are actual classes,
  * columns predicted -- the diagonal (a correct call) is the one place this
- * table spends colour, in --signal, consistent with --signal marking "the
- * thing in focus" everywhere else rather than a heatmap gradient (frontend.md:
- * "no gradients"). */
+ * table spends colour, in --signal -- which is also the classifier's
+ * model-type accent (frontend.md's colour coding defines the two as the
+ * same hex), so this doubles as "the thing in focus" and "this model's
+ * type colour" at once, rather than a heatmap gradient ("no gradients"). */
 export function ConfusionMatrixChart({ confusionMatrix, labels }: ConfusionMatrixChartProps) {
   const total = confusionMatrix.reduce((sum, row) => sum + row.reduce((a, b) => a + b, 0), 0);
   const correct = confusionMatrix.reduce((sum, row, i) => sum + (row[i] ?? 0), 0);

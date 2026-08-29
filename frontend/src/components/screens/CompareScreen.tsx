@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { ScreenPanel } from "../ScreenPanel";
+import { ScreenPanel, WORKSPACE_WIDTH } from "../ScreenPanel";
 import { AXIS_TICK, TOOLTIP_STYLE } from "../charts/chartTheme";
 import { formatMetricValue } from "../../lib/format";
+import { typeBorderClass, typeColorVar, typeTextClass } from "../../lib/modelType";
 import { useComparison } from "../../hooks/useComparison";
 import type { components } from "../../types/api";
 
@@ -12,11 +13,12 @@ interface CompareScreenProps {
   trainingResults: TrainResponse | null;
 }
 
-// First-selected model is the series "in focus" (--signal); the rest share
-// --ink at decreasing opacity -- the same signal-vs-ink pattern
-// DistributionChart uses for its target series, extended to more than two
-// series without spending colour on a per-model palette (frontend.md).
-const INK_OPACITY_STEPS = [1, 0.7, 0.45, 0.25];
+// Compare only ever holds one model_type (mixed selections are blocked
+// below), so every bar shares that type's accent colour (frontend.md's
+// colour coding) -- individual models are told apart by decreasing
+// opacity in selection order, first-selected fully opaque, rather than a
+// per-model palette.
+const OPACITY_STEPS = [1, 0.7, 0.45, 0.25];
 
 /** Screen 7 (frontend.md): metrics table (models as columns, metrics as
  * rows), then a grouped bar chart, ordered by selection order -- never by
@@ -51,7 +53,7 @@ export function CompareScreen({ trainingResults }: CompareScreenProps) {
   };
 
   return (
-    <ScreenPanel maxWidthClassName="max-w-5xl">
+    <ScreenPanel maxWidthClassName={WORKSPACE_WIDTH}>
       <h1 className="mb-1 text-lg font-medium text-ink">Compare</h1>
       <p className="mb-4 text-sm text-muted">Select two or more trained models of the same type to compare.</p>
 
@@ -66,7 +68,9 @@ export function CompareScreen({ trainingResults }: CompareScreenProps) {
                 onClick={() => toggle(model.model_key)}
                 className={
                   "rounded-panel border px-3 py-2 text-left text-sm " +
-                  (isSelected ? "border-signal text-signal" : "border-rule text-ink hover:border-ink")
+                  (isSelected
+                    ? typeBorderClass(model.model_type) + " " + typeTextClass(model.model_type)
+                    : "border-rule text-ink hover:border-ink")
                 }
               >
                 {model.model_name}
@@ -124,7 +128,10 @@ function ComparisonResult({ result }: { result: components["schemas"]["Compariso
             <tr className="border-b border-rule text-xs uppercase tracking-wide text-muted">
               <th className="px-3 py-2 font-medium">Metric</th>
               {result.models.map((m) => (
-                <th key={m.model_key} className="px-3 py-2 font-mono font-medium normal-case text-ink">
+                <th
+                  key={m.model_key}
+                  className={"px-3 py-2 font-mono font-medium normal-case " + typeTextClass(m.model_type)}
+                >
                   {m.model_name}
                 </th>
               ))}
@@ -159,8 +166,8 @@ function ComparisonResult({ result }: { result: components["schemas"]["Compariso
                   key={m.model_key}
                   dataKey={m.model_key}
                   name={m.model_name}
-                  fill={index === 0 ? "var(--color-signal)" : "var(--color-ink)"}
-                  fillOpacity={index === 0 ? 1 : (INK_OPACITY_STEPS[index] ?? 0.25)}
+                  fill={typeColorVar(m.model_type)}
+                  fillOpacity={OPACITY_STEPS[index] ?? 0.25}
                   radius={0}
                 />
               ))}

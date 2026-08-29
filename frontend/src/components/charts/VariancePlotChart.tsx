@@ -6,7 +6,8 @@ interface VariancePlotChartProps {
 }
 
 /** Screen 5's dimensionality-reducer chart (frontend.md): explained
- * variance per component, --ink bars. `ratio` can carry `null` entries
+ * variance per component, bars in the reducer's model-type accent
+ * (violet). `ratio` can carry `null` entries
  * when the test split has zero variance (metrics.py's generic,
  * non-PCA-specific computation) -- rendered as an empty bar rather than
  * silently treated as zero, so a genuinely undefined value isn't shown as
@@ -30,7 +31,7 @@ export function VariancePlotChart({ explainedVarianceRatio }: VariancePlotChartP
             <XAxis dataKey="label" tick={AXIS_TICK} />
             <YAxis tick={AXIS_TICK} width={40} />
             <Tooltip {...TOOLTIP_STYLE} cursor={{ fill: "var(--color-rule)", opacity: 0.3 }} />
-            <Bar dataKey="ratio" fill="var(--color-ink)" radius={0} />
+            <Bar dataKey="ratio" fill="var(--color-type-reduce)" radius={0} />
           </BarChart>
         </ResponsiveContainer>
       </div>

@@ -1,5 +1,5 @@
 import { ModelCard } from "../ModelCard";
-import { ScreenPanel } from "../ScreenPanel";
+import { ScreenPanel, WORKSPACE_WIDTH } from "../ScreenPanel";
 import type { Compatibility } from "../../hooks/useModels";
 import type { components } from "../../types/api";
 
@@ -50,7 +50,7 @@ export function ModelSelectionScreen({
   const incompatibleByKey = new Map(compatibility.incompatible.map((m) => [m.key, m.reason]));
 
   return (
-    <ScreenPanel maxWidthClassName="max-w-5xl">
+    <ScreenPanel maxWidthClassName={WORKSPACE_WIDTH}>
       <h1 className="mb-1 text-lg font-medium text-ink">Model selection</h1>
       <p className="mb-4 text-sm text-muted">
         Detected data type: <span className="font-mono text-ink">{compatibility.dataType}</span>.

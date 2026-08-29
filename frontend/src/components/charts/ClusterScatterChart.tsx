@@ -21,10 +21,12 @@ const NOISE_LABEL = -1;
  * for display only (PCA when there were more than two features to
  * project, computed server-side so this component stays a thin renderer --
  * see metrics.py's docstring for why). Clusters are told apart by marker
- * shape, not colour, so --signal stays reserved for noise: the one
- * flagged category, matching how --signal marks "the thing in focus"
- * everywhere else rather than spending it on an arbitrary per-cluster
- * palette (frontend.md's colour-economy rule). */
+ * shape, not colour, so every ordinary cluster shares one fill: the
+ * clusterer's model-type accent (frontend.md's colour coding), the same
+ * teal-green as this model's card in Model Selection. --signal stays
+ * reserved for noise, the one flagged category -- --signal still marks
+ * "the thing in focus" generally, it's just no longer this chart's
+ * type colour. */
 export function ClusterScatterChart({ points, labels }: ClusterScatterChartProps) {
   const byLabel = new Map<number, { x: number; y: number }[]>();
   points.forEach((point, i) => {
@@ -53,7 +55,7 @@ export function ClusterScatterChart({ points, labels }: ClusterScatterChartProps
                 key={clusterId}
                 name={`cluster ${clusterId}`}
                 data={byLabel.get(clusterId)}
-                fill="var(--color-ink)"
+                fill="var(--color-type-cluster)"
                 shape={markerShapeForCluster(index)}
               />
             ))}

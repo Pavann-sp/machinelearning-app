@@ -113,4 +113,52 @@ describe("PredictScreen", () => {
     await waitFor(() => expect(POST).toHaveBeenCalledTimes(1));
     expect(await screen.findByText("2 predictions")).toBeInTheDocument();
   });
+
+  it("names the missing fields in manual mode before sending any request", async () => {
+    const user = userEvent.setup();
+    // POST isn't reset between tests in this file -- clear the call an
+    // earlier test made so ".not.toHaveBeenCalled()" below is about this
+    // action, not the accumulated total.
+    POST.mockClear();
+    render(<PredictScreen profile={profile} trainingResults={trainingResults} />);
+
+    await user.click(screen.getByRole("button", { name: "Enter values" }));
+    await user.type(screen.getByLabelText(/^a /), "1");
+    await user.click(screen.getByRole("button", { name: "Predict" }));
+
+    expect(
+      screen.getByText("Enter a value for every feature before predicting."),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/Missing:/)).toHaveTextContent("b"); // named as missing
+    expect(POST).not.toHaveBeenCalled();
+  });
+
+  it("predicts in manual mode once every field is filled", async () => {
+    const user = userEvent.setup();
+    // POST isn't reset between tests in this file (matching the existing
+    // pattern above) -- clear the call count this earlier test left behind
+    // so this test's own assertion below is about this action, not the total.
+    POST.mockClear();
+    POST.mockResolvedValueOnce({
+      data: {
+        training_id: "t1",
+        model_key: "logistic_regression",
+        model_type: "classifier",
+        n_samples: 1,
+        predictions: [1],
+        probabilities: null,
+      },
+      error: undefined,
+    });
+
+    render(<PredictScreen profile={profile} trainingResults={trainingResults} />);
+
+    await user.click(screen.getByRole("button", { name: "Enter values" }));
+    await user.type(screen.getByLabelText(/^a /), "1");
+    await user.type(screen.getByLabelText(/^b /), "2");
+    await user.click(screen.getByRole("button", { name: "Predict" }));
+
+    await waitFor(() => expect(POST).toHaveBeenCalledTimes(1));
+    expect(await screen.findByText("1 prediction")).toBeInTheDocument();
+  });
 });

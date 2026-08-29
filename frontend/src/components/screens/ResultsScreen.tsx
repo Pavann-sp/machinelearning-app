@@ -5,7 +5,8 @@ import { FeatureImportanceChart } from "../charts/FeatureImportanceChart";
 import { PredictedVsActualChart } from "../charts/PredictedVsActualChart";
 import { VariancePlotChart } from "../charts/VariancePlotChart";
 import { MetricsList } from "../MetricsList";
-import { ScreenPanel } from "../ScreenPanel";
+import { ScreenPanel, WORKSPACE_WIDTH } from "../ScreenPanel";
+import { typeBorderClass, typeTextClass } from "../../lib/modelType";
 import type { components } from "../../types/api";
 
 type TrainedModelResponse = components["schemas"]["TrainedModelResponse"];
@@ -28,7 +29,7 @@ export function ResultsScreen({ results }: ResultsScreenProps) {
   }
 
   return (
-    <ScreenPanel maxWidthClassName="max-w-5xl">
+    <ScreenPanel maxWidthClassName={WORKSPACE_WIDTH}>
       <h1 className="mb-4 text-lg font-medium text-ink">Results</h1>
       <div className="flex flex-col gap-6">
         {results.results.map((result) => (
@@ -40,11 +41,16 @@ export function ResultsScreen({ results }: ResultsScreenProps) {
 }
 
 function ResultPanel({ result }: { result: TrainedModelResponse }) {
+  // Model-type colour coding (frontend.md): a left accent strip plus the
+  // type label itself, matching the same model's card in Model Selection
+  // and, once shared with another model, its column in Compare.
   return (
-    <section className="rounded-panel border border-rule p-4">
+    <section className={"rounded-panel border border-l-4 p-4 " + typeBorderClass(result.model_type)}>
       <div className="flex items-center justify-between">
         <h2 className="text-sm font-medium text-ink">{result.model_name}</h2>
-        <span className="font-mono text-xs uppercase text-muted">{result.model_type}</span>
+        <span className={"font-mono text-xs uppercase " + typeTextClass(result.model_type)}>
+          {result.model_type}
+        </span>
       </div>
 
       <p className="mt-1 font-mono text-xs text-muted">

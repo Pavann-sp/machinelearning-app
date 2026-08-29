@@ -15,10 +15,11 @@ interface PredictedVsActualChartProps {
   yPred: number[];
 }
 
-/** Screen 5's regressor chart (frontend.md). Points in --ink; the y=x
- * diagonal (a perfect prediction) in --rule, since it's a reference, not
- * data -- the metrics block above already carries R²/MAE as the key
- * numbers, so this caption just orients the reader to the shape. */
+/** Screen 5's regressor chart (frontend.md). Points in the regressor's
+ * model-type accent (gold); the y=x diagonal (a perfect prediction) in
+ * --rule, since it's a reference, not data -- the metrics block above
+ * already carries R²/MAE as the key numbers, so this caption just orients
+ * the reader to the shape. */
 export function PredictedVsActualChart({ yTrue, yPred }: PredictedVsActualChartProps) {
   const data = yTrue.map((actual, i) => ({ x: actual, y: yPred[i] }));
   const allValues = [...yTrue, ...yPred];
@@ -42,7 +43,7 @@ export function PredictedVsActualChart({ yTrue, yPred }: PredictedVsActualChartP
               stroke="var(--color-rule)"
               strokeDasharray="4 4"
             />
-            <Scatter data={data} fill="var(--color-ink)" />
+            <Scatter data={data} fill="var(--color-type-regress)" />
           </ScatterChart>
         </ResponsiveContainer>
       </div>

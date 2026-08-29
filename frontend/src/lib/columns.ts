@@ -30,3 +30,22 @@ export function diffColumns(expected: string[], actual: string[]): ColumnMismatc
   if (missing.length === 0 && unexpected.length === 0) return null;
   return { missing, unexpected };
 }
+
+/** Quotes a single CSV field when it contains a comma, quote or newline --
+ * the inverse of parseCsvHeader's quote-stripping. Used to build the
+ * single-row CSV screen 6's manual-entry mode assembles in the browser
+ * (frontend.md §6: "posting it through the existing upload-based predict
+ * endpoint unchanged"). */
+function csvField(value: string): string {
+  if (/[",\n\r]/.test(value)) return `"${value.replace(/"/g, '""')}"`;
+  return value;
+}
+
+/** Builds a one-row CSV (header + single data row) from an ordered list of
+ * column names and a value per name, in the same column order the CSV-mode
+ * upload would use. */
+export function buildSingleRowCsv(columns: string[], values: Record<string, string>): string {
+  const header = columns.map(csvField).join(",");
+  const row = columns.map((column) => csvField(values[column] ?? "")).join(",");
+  return `${header}\r\n${row}\r\n`;
+}

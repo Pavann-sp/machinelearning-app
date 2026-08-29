@@ -8,16 +8,20 @@ const AXIS_TICK = { fontSize: 10, fontFamily: "var(--font-mono)", fill: "var(--c
 
 interface DistributionChartProps {
   column: ColumnSummary;
+  // The colour for the target column's bars/label -- the model type its
+  // data_type will train (EdaScreen.tsx), not always --signal. Every
+  // non-target column stays --ink regardless.
+  targetAccentVar: string;
 }
 
 /** One column's distribution -- screen 2's right column, target first
- * (frontend.md). The target's chart is the "series in focus": --signal
- * fill, everything else --ink. A text caption carries the same key number
- * for the quality floor's "text alternatives" requirement. */
-export function DistributionChart({ column }: DistributionChartProps) {
+ * (frontend.md). The target's chart is the "series in focus": it gets the
+ * accent colour, everything else --ink. A text caption carries the same key
+ * number for the quality floor's "text alternatives" requirement. */
+export function DistributionChart({ column, targetAccentVar }: DistributionChartProps) {
   const buckets = bucketsForColumn(column);
   const caption = topBucketCaption(buckets);
-  const barColor = column.is_target ? "var(--color-signal)" : "var(--color-ink)";
+  const barColor = column.is_target ? targetAccentVar : "var(--color-ink)";
 
   return (
     <div className="rounded-panel border border-rule bg-surface p-3">
@@ -25,7 +29,9 @@ export function DistributionChart({ column }: DistributionChartProps) {
         <h3 className="text-sm font-medium text-ink">
           {column.name}
           {column.is_target && (
-            <span className="ml-2 font-mono text-xs uppercase text-signal">target</span>
+            <span className="ml-2 font-mono text-xs uppercase" style={{ color: targetAccentVar }}>
+              target
+            </span>
           )}
         </h3>
         {column.missing_count > 0 && (

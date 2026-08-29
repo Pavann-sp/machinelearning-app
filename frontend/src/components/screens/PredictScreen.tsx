@@ -1,31 +1,40 @@
 import { useState } from "react";
 import { Dropzone } from "../Dropzone";
 import { ScreenPanel } from "../ScreenPanel";
-import { diffColumns, parseCsvHeader, type ColumnMismatch } from "../../lib/columns";
+import { buildSingleRowCsv, diffColumns, parseCsvHeader, type ColumnMismatch } from "../../lib/columns";
 import { usePrediction } from "../../hooks/usePrediction";
 import type { DataProfileResponse } from "../../hooks/useDataset";
 import type { components } from "../../types/api";
 
 type TrainResponse = components["schemas"]["TrainResponse"];
+type ColumnSummary = components["schemas"]["ColumnSummary"];
 
 const MAX_ROWS_SHOWN = 25;
+type PredictMode = "csv" | "manual";
 
 interface PredictScreenProps {
   profile: DataProfileResponse;
   trainingResults: TrainResponse | null;
 }
 
-/** Screen 6 (frontend.md): mirrors screen 1. On column mismatch, names the
- * mismatched columns explicitly before any request is sent -- the check
- * runs client-side against the columns this training run's dataset had
- * (minus the target, which a fresh prediction file never carries), ahead
- * of the backend's own rejection at Stage 6 (defense in depth, not a
- * replacement for it). */
+/** Screen 6 (frontend.md): two input modes, a toggle between them. Upload
+ * CSV mirrors screen 1 and names a column mismatch client-side, ahead of
+ * the backend's own rejection at Stage 6 (defense in depth, not a
+ * replacement for it). Enter values renders one field per feature column
+ * (confirmed available via `profile.columns` -- BUILD_SESSIONS.md Session
+ * 8's pre-flight check) and submits by assembling a single-row CSV in the
+ * browser, posting it through this same upload-based predict endpoint --
+ * no new backend endpoint. */
 export function PredictScreen({ profile, trainingResults }: PredictScreenProps) {
   const { result, loading, error, predict, reset } = usePrediction();
   const [modelKey, setModelKey] = useState(trainingResults?.results[0]?.model_key ?? "");
+  const [mode, setMode] = useState<PredictMode>("csv");
+
   const [file, setFile] = useState<File | null>(null);
   const [mismatch, setMismatch] = useState<ColumnMismatch | null>(null);
+
+  const [manualValues, setManualValues] = useState<Record<string, string>>({});
+  const [manualMissing, setManualMissing] = useState<string[]>([]);
 
   if (!trainingResults || trainingResults.results.length === 0) {
     return (
@@ -35,9 +44,17 @@ export function PredictScreen({ profile, trainingResults }: PredictScreenProps) 
     );
   }
 
-  const expectedColumns = profile.columns
-    .filter((column) => column.name !== profile.target_column)
-    .map((column) => column.name);
+  const featureColumns: ColumnSummary[] = profile.columns.filter(
+    (column) => column.name !== profile.target_column,
+  );
+  const expectedColumns = featureColumns.map((column) => column.name);
+
+  const switchMode = (next: PredictMode) => {
+    setMode(next);
+    reset();
+    setMismatch(null);
+    setManualMissing([]);
+  };
 
   const handleFile = async (nextFile: File) => {
     reset();
@@ -46,18 +63,38 @@ export function PredictScreen({ profile, trainingResults }: PredictScreenProps) 
     setMismatch(diffColumns(expectedColumns, header));
   };
 
-  const handlePredict = () => {
+  const handlePredictCsv = () => {
     if (!file || mismatch) return;
     predict(trainingResults.training_id, modelKey, file);
   };
 
+  const handleManualFieldChange = (name: string, value: string) => {
+    setManualValues((prev) => ({ ...prev, [name]: value }));
+    setManualMissing((prev) => prev.filter((n) => n !== name));
+  };
+
+  const handlePredictManual = () => {
+    const missing = featureColumns
+      .filter((column) => !(manualValues[column.name] ?? "").trim())
+      .map((column) => column.name);
+    if (missing.length > 0) {
+      setManualMissing(missing);
+      return;
+    }
+    setManualMissing([]);
+    const csv = buildSingleRowCsv(expectedColumns, manualValues);
+    const manualFile = new File([csv], "manual-entry.csv", { type: "text/csv" });
+    predict(trainingResults.training_id, modelKey, manualFile);
+  };
+
   return (
-    <ScreenPanel maxWidthClassName="max-w-3xl">
+    <ScreenPanel>
       <div className="flex flex-col gap-6">
         <div>
           <h1 className="text-lg font-medium text-ink">Predict on new data</h1>
           <p className="mt-1 text-sm text-muted">
-            Upload a CSV with the same feature columns as training to get predictions from a trained model.
+            Run a trained model on new data -- upload a CSV with the same feature columns as
+            training, or enter one row of values directly.
           </p>
         </div>
 
@@ -82,32 +119,98 @@ export function PredictScreen({ profile, trainingResults }: PredictScreenProps) 
           </select>
         </div>
 
-        <Dropzone onFile={handleFile} loading={loading} fileName={file?.name} />
+        <div className="flex gap-2">
+          {(["csv", "manual"] as const).map((m) => (
+            <button
+              key={m}
+              type="button"
+              aria-pressed={mode === m}
+              onClick={() => switchMode(m)}
+              className={
+                "rounded-panel border px-4 py-2 text-sm " +
+                (mode === m ? "border-signal text-signal" : "border-rule text-ink hover:border-ink")
+              }
+            >
+              {m === "csv" ? "Upload CSV" : "Enter values"}
+            </button>
+          ))}
+        </div>
 
-        {mismatch && (
-          <div className="rounded-panel border border-rule p-4 text-sm text-ink">
-            <p className="font-medium">This file's columns don't match the training data.</p>
-            {mismatch.missing.length > 0 && (
-              <p className="mt-1 text-xs text-muted">
-                Missing: <span className="font-mono text-ink">{mismatch.missing.join(", ")}</span>
-              </p>
+        {mode === "csv" ? (
+          <>
+            <Dropzone onFile={handleFile} loading={loading} fileName={file?.name} />
+
+            {mismatch && (
+              <div className="rounded-panel border border-rule p-4 text-sm text-ink">
+                <p className="font-medium">This file's columns don't match the training data.</p>
+                {mismatch.missing.length > 0 && (
+                  <p className="mt-1 text-xs text-muted">
+                    Missing: <span className="font-mono text-ink">{mismatch.missing.join(", ")}</span>
+                  </p>
+                )}
+                {mismatch.unexpected.length > 0 && (
+                  <p className="mt-1 text-xs text-muted">
+                    Unexpected: <span className="font-mono text-ink">{mismatch.unexpected.join(", ")}</span>
+                  </p>
+                )}
+              </div>
             )}
-            {mismatch.unexpected.length > 0 && (
-              <p className="mt-1 text-xs text-muted">
-                Unexpected: <span className="font-mono text-ink">{mismatch.unexpected.join(", ")}</span>
-              </p>
+
+            <button
+              type="button"
+              onClick={handlePredictCsv}
+              disabled={!file || !!mismatch || loading}
+              className="rounded-panel border border-signal bg-signal px-4 py-2 text-sm font-medium text-surface disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {loading ? "Predicting…" : "Predict"}
+            </button>
+          </>
+        ) : (
+          <>
+            <div className="rounded-panel border border-rule p-4">
+              <div className="flex flex-col gap-3">
+                {featureColumns.map((column) => (
+                  <div key={column.name} className="flex flex-col gap-1">
+                    <label htmlFor={`manual-${column.name}`} className="text-sm text-muted">
+                      {column.name}{" "}
+                      <span className="font-mono text-xs lowercase text-muted">({column.dtype})</span>
+                    </label>
+                    <input
+                      id={`manual-${column.name}`}
+                      type={column.dtype === "numeric" ? "number" : "text"}
+                      step={column.dtype === "numeric" ? "any" : undefined}
+                      value={manualValues[column.name] ?? ""}
+                      disabled={loading}
+                      onChange={(e) => handleManualFieldChange(column.name, e.target.value)}
+                      className={
+                        "rounded-panel border bg-surface px-3 py-2 text-sm text-ink " +
+                        (manualMissing.includes(column.name) ? "border-signal" : "border-rule")
+                      }
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {manualMissing.length > 0 && (
+              <div className="rounded-panel border border-rule p-4 text-sm text-ink">
+                <p className="font-medium">Enter a value for every feature before predicting.</p>
+                <p className="mt-1 text-xs text-muted">
+                  Missing: <span className="font-mono text-ink">{manualMissing.join(", ")}</span>
+                </p>
+              </div>
             )}
-          </div>
+
+            <button
+              type="button"
+              onClick={handlePredictManual}
+              disabled={loading}
+              className="rounded-panel border border-signal bg-signal px-4 py-2 text-sm font-medium text-surface disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {loading ? "Predicting…" : "Predict"}
+            </button>
+          </>
         )}
-
-        <button
-          type="button"
-          onClick={handlePredict}
-          disabled={!file || !!mismatch || loading}
-          className="rounded-panel border border-signal bg-signal px-4 py-2 text-sm font-medium text-surface disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {loading ? "Predicting…" : "Predict"}
-        </button>
 
         {error && <p className="text-sm text-ink">Prediction failed: {error.message}</p>}
 
