@@ -27,6 +27,12 @@ class TrainedModelResponse(BaseModel):
     n_features: int
     feature_importance: dict[str, float] | None
     visualization_data: dict[str, Any] | None
+    # Backend-generic per-sample data for screen 5's cluster-scatter /
+    # predicted-vs-actual charts (app.core.metrics.compute_plot_data) --
+    # deliberately separate from visualization_data, which stays
+    # model-owned (DATA_FLOW_GUIDE.md SS5.3). None for classifier and
+    # dimensionality_reducer, whose charts are fed entirely by `metrics`.
+    plot_data: dict[str, Any] | None
 
 
 class TrainResponse(BaseModel):

@@ -16,7 +16,7 @@ Pydantic schemas (the authoritative contract — `.claude/rules/backend.md`) via
 its live OpenAPI schema. Regenerate it whenever the backend contract changes:
 
 ```bash
-cd backend && uvicorn app.main:app --reload    # backend must be running
+cd backend && uvicorn app.main:app --reload --port 8050    # backend must be running
 cd frontend && npm run gen:types
 ```
 
@@ -43,7 +43,7 @@ state. No global store.
 ## Commands
 
 ```bash
-npm run dev         # localhost:5173, proxies /api to localhost:8000
+npm run dev         # localhost:5173, proxies /api to localhost:8050
 npm run build        # tsc -b && vite build
 npm run test          # vitest run
 npm run gen:types     # regenerate src/types/api.ts from the live backend

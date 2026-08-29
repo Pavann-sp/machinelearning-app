@@ -21,10 +21,25 @@ model-internal value:
   a guarantee. It is a separate value from a PCA model's own
   get_visualization_data()["explained_variance_ratio"], which is the
   model's real internal value; both may be present and may differ.
+
+`compute_plot_data` is the per-sample counterpart, for the screen-5 charts
+that scalar metrics can't feed (frontend.md's per-type chart contract:
+cluster scatter, predicted-vs-actual). It is backend-generic, never
+model-owned -- kept off `metrics` (whose keys are asserted exactly by the
+API contract tests) and off `visualization_data` (which
+DATA_FLOW_GUIDE.md SS5.3 reserves for whatever a model itself returns).
+Classifier and dimensionality_reducer return None here: the confusion
+matrix and explained-variance chart are already fully fed by `metrics`.
+Clusterer scatter needs 2D points regardless of how many features X_test
+actually has, so a fixed, seeded, model-agnostic projection is used for
+display only -- PCA(n_components=2) when there are enough features/samples
+to support it, otherwise a degenerate placement that never fabricates a
+second axis of real information.
 """
 from typing import Any
 
 import numpy as np
+from sklearn.decomposition import PCA
 from sklearn.metrics import (
     accuracy_score,
     confusion_matrix,
@@ -119,4 +134,42 @@ def compute_metrics(
         return _clusterer_metrics(X, y_pred)
     if model_type == "dimensionality_reducer":
         return _dimensionality_reducer_metrics(X, y_pred)
+    raise ValueError(f"Unrecognised model_type: {model_type!r}")
+
+
+def _cluster_scatter_points(X: np.ndarray) -> list[list[float]]:
+    """2D points for the cluster-scatter chart, for display only -- never
+    treated as a real embedding. PCA(n_components=2, random_state=42) when
+    there's enough shape to support it; otherwise place points along
+    whatever single axis exists (or the origin) rather than fabricate a
+    second axis of information that isn't there."""
+    n_samples, n_features = X.shape
+    if n_features >= 2 and n_samples >= 2:
+        return PCA(n_components=2, random_state=42).fit_transform(X).tolist()
+    x = X[:, 0] if n_features >= 1 else np.zeros(n_samples)
+    y = np.zeros(n_samples)
+    return np.column_stack([x, y]).tolist()
+
+
+def compute_plot_data(
+    model_type: str,
+    X: np.ndarray,
+    y_true: np.ndarray | None,
+    y_pred: np.ndarray,
+) -> dict[str, Any] | None:
+    """Per-sample data for the screen-5 charts scalar `metrics` can't feed
+    (frontend.md's per-type chart contract): predicted-vs-actual pairs for
+    regressors, 2D scatter points for clusterers. Backend-generic, computed
+    from X_test/y_test/predictions alone, same as `metrics`' own generic
+    branches -- never from the model. None for classifier and
+    dimensionality_reducer, whose charts (confusion matrix, explained
+    variance) are already fully fed by `metrics`."""
+    if model_type in ("classifier", "dimensionality_reducer"):
+        return None
+    if model_type == "regressor":
+        if y_true is None:
+            raise ValueError("Regressor plot data requires y_true.")
+        return {"y_true": y_true.tolist(), "y_pred": y_pred.tolist()}
+    if model_type == "clusterer":
+        return {"points": _cluster_scatter_points(X), "labels": y_pred.tolist()}
     raise ValueError(f"Unrecognised model_type: {model_type!r}")

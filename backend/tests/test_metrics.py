@@ -8,7 +8,7 @@ clustering output, and an unrecognised model_type.
 import numpy as np
 import pytest
 
-from app.core.metrics import compute_metrics
+from app.core.metrics import compute_metrics, compute_plot_data
 
 
 class TestClassifierMetrics:
@@ -106,3 +106,51 @@ class TestDimensionalityReducerMetrics:
 def test_unrecognised_model_type_raises():
     with pytest.raises(ValueError, match="Unrecognised model_type"):
         compute_metrics("regression_tree_ensemble", X=np.zeros((1, 1)), y_true=None, y_pred=np.zeros(1))
+
+
+class TestPlotData:
+    """Backend-generic per-sample data for screen 5's cluster-scatter and
+    predicted-vs-actual charts (frontend.md), kept separate from `metrics`."""
+
+    def test_classifier_and_reducer_have_no_plot_data(self):
+        assert compute_plot_data(
+            "classifier", X=np.zeros((3, 2)), y_true=np.zeros(3), y_pred=np.zeros(3),
+        ) is None
+        assert compute_plot_data(
+            "dimensionality_reducer", X=np.zeros((3, 2)), y_true=None, y_pred=np.zeros((3, 2)),
+        ) is None
+
+    def test_regressor_passes_through_actual_and_predicted(self):
+        y_true = np.array([1.0, 2.0, 3.0])
+        y_pred = np.array([1.1, 1.9, 3.5])
+        plot_data = compute_plot_data("regressor", X=np.zeros((3, 1)), y_true=y_true, y_pred=y_pred)
+        assert plot_data == {"y_true": [1.0, 2.0, 3.0], "y_pred": [1.1, 1.9, 3.5]}
+
+    def test_regressor_requires_y_true(self):
+        with pytest.raises(ValueError, match="y_true"):
+            compute_plot_data("regressor", X=np.zeros((2, 1)), y_true=None, y_pred=np.array([0.0, 1.0]))
+
+    def test_clusterer_projects_many_features_to_two_points(self):
+        rng = np.random.default_rng(42)
+        X = rng.standard_normal((10, 4))
+        labels = np.array([0] * 5 + [1] * 5)
+        plot_data = compute_plot_data("clusterer", X=X, y_true=None, y_pred=labels)
+        assert len(plot_data["points"]) == 10
+        assert all(len(point) == 2 for point in plot_data["points"])
+        assert plot_data["labels"] == labels.tolist()
+
+    def test_clusterer_noise_label_kept_in_plot_data(self):
+        X = np.array([[0.0, 0.0], [1.0, 1.0], [5.0, 5.0]])
+        labels = np.array([0, 0, -1])
+        plot_data = compute_plot_data("clusterer", X=X, y_true=None, y_pred=labels)
+        assert plot_data["labels"] == [0, 0, -1]
+
+    def test_clusterer_single_feature_does_not_fabricate_a_second_axis(self):
+        X = np.array([[1.0], [2.0], [3.0]])
+        labels = np.array([0, 0, 1])
+        plot_data = compute_plot_data("clusterer", X=X, y_true=None, y_pred=labels)
+        assert plot_data["points"] == [[1.0, 0.0], [2.0, 0.0], [3.0, 0.0]]
+
+    def test_unrecognised_model_type_raises(self):
+        with pytest.raises(ValueError, match="Unrecognised model_type"):
+            compute_plot_data("regression_tree_ensemble", X=np.zeros((1, 1)), y_true=None, y_pred=np.zeros(1))

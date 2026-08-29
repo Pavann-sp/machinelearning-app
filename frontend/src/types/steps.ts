@@ -22,3 +22,8 @@ export const STEPS: StepDefinition[] = [
   { id: "predict", label: "Predict" },
   { id: "compare", label: "Compare" },
 ];
+
+// The Start screen precedes step 1 and is deliberately outside the 1-7
+// numbering (frontend.md) -- there's no run history to return to, so it
+// isn't itself a "step" the indicator can land on.
+export type View = "start" | StepId;

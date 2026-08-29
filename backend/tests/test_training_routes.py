@@ -42,6 +42,8 @@ class TestTrainClassifier:
         assert result["model_type"] == "classifier"
         assert set(result["metrics"]) == {"accuracy", "precision", "recall", "f1", "confusion_matrix", "labels"}
         assert 0.0 <= result["metrics"]["accuracy"] <= 1.0
+        # Confusion matrix chart is fed entirely by `metrics` -- no plot_data needed.
+        assert result["plot_data"] is None
 
 
 class TestTrainClusterer:
@@ -55,6 +57,14 @@ class TestTrainClusterer:
         # blobs is three well-separated synthetic clusters and kmeans
         # defaults to n_clusters=3, so these are definable, not None.
         assert result["metrics"]["silhouette_score"] > 0.5
+        # blobs ships 4 features, so this exercises the real PCA-projection
+        # path (app.core.metrics._cluster_scatter_points), not the
+        # degenerate <=2-feature fallback.
+        plot_data = result["plot_data"]
+        n_test_rows = round(200 * 0.2)
+        assert len(plot_data["points"]) == n_test_rows
+        assert all(len(point) == 2 for point in plot_data["points"])
+        assert len(plot_data["labels"]) == n_test_rows
 
     def test_hyperparameter_override_is_echoed_back(self, client):
         data_id = _load_sample(client, "blobs")
@@ -80,6 +90,9 @@ class TestTrainRegressor:
         result = response.json()["results"][0]
         assert result["model_type"] == "regressor"
         assert set(result["metrics"]) == {"mse", "rmse", "r2", "mae"}
+        plot_data = result["plot_data"]
+        assert len(plot_data["y_true"]) == len(plot_data["y_pred"])
+        assert len(plot_data["y_true"]) > 0
 
 
 class TestTrainDimensionalityReducer:
@@ -92,6 +105,8 @@ class TestTrainDimensionalityReducer:
         assert len(result["metrics"]["explained_variance_ratio"]) == 2  # default n_components
         # PCA's own get_visualization_data() is present too.
         assert "explained_variance_ratio" in result["visualization_data"]
+        # Variance plot chart is fed entirely by `metrics` -- no plot_data needed.
+        assert result["plot_data"] is None
 
     def test_pca_compatible_with_labelled_and_unlabelled_data(self, client):
         for sample_id in ("iris", "diabetes", "blobs"):

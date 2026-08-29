@@ -24,6 +24,7 @@ class TrainedModelResult:
     metrics: dict[str, Any]
     metadata: dict[str, Any]
     visualization_data: dict[str, Any] | None
+    plot_data: dict[str, Any] | None
 
 
 @dataclass

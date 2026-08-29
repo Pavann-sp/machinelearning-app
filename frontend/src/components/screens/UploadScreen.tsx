@@ -41,7 +41,7 @@ export function UploadScreen({ profile, onProfile, testSize, onTestSizeChange }:
   };
 
   return (
-    <ScreenPanel>
+    <ScreenPanel maxWidthClassName="max-w-[640px]">
       <div className="flex flex-col gap-6">
         <div>
           <h1 className="text-lg font-medium text-ink">Upload</h1>
