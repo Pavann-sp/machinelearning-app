@@ -7,11 +7,19 @@ backend/tests/reference_models/.
 
 Group submissions under backend/models/group_*/ are never imported here
 until explicitly instructed (see CLAUDE.md "Current state").
+
+group_03_rnn (explicitly instructed) is the first group submission
+registered. It ships three regressor architectures -- RNNModel, LSTMModel,
+GRUModel -- rather than the single model.py entry point other groups use;
+all three are registered here as separate manifest entries.
 """
 import logging
 
 from models.base_model import BaseModel
 from models.example_logistic_regression.model import LogisticRegressionModel
+from models.group_03_rnn.gru import GRUModel
+from models.group_03_rnn.lstm import LSTMModel
+from models.group_03_rnn.rnn import RNNModel
 from tests.reference_models.ref_kmeans import RefKMeansModel
 from tests.reference_models.ref_linear import RefLinearRegressionModel
 from tests.reference_models.ref_pca import RefPCAModel
@@ -24,6 +32,9 @@ MODEL_MANIFEST: dict[str, type] = {
     "kmeans": RefKMeansModel,
     "linear_regression": RefLinearRegressionModel,
     "pca": RefPCAModel,
+    "rnn": RNNModel,
+    "lstm": LSTMModel,
+    "gru": GRUModel,
 }
 
 
