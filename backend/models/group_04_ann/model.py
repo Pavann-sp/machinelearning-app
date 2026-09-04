@@ -14,7 +14,6 @@ encoded, imputed) and never performs any preprocessing of its own.
 """
 
 import time
-from typing import Dict, List, Optional
 
 import numpy as np
 import torch
@@ -32,7 +31,7 @@ torch.use_deterministic_algorithms(True)
 
 def _build_network(
     in_features: int,
-    hidden_sizes: List[int],
+    hidden_sizes: list[int],
     out_features: int,
     activation: str,
     dropout_rate: float,
@@ -61,7 +60,7 @@ def _build_network(
         )
     act_cls = activation_map[activation]
 
-    layers: List[nn.Module] = []
+    layers: list[nn.Module] = []
     prev = in_features
     for h in hidden_sizes:
         layers += [
@@ -118,7 +117,7 @@ class ANNModel(BaseModel):
 
     def __init__(
         self,
-        hidden_sizes: List[int] = None,
+        hidden_sizes: list[int] = None,
         activation: str = "relu",
         lr: float = 1e-3,
         epochs: int = 100,
@@ -165,11 +164,11 @@ class ANNModel(BaseModel):
         self.random_state = random_state
 
         # Populated during fit().
-        self._network: Optional[nn.Sequential] = None
-        self._model_type: Optional[str] = None   # "classifier" | "regressor"
-        self.classes_: Optional[np.ndarray] = None
-        self._train_time: Optional[float] = None
-        self._loss_history: List[float] = []
+        self._network: nn.Sequential | None = None
+        self._model_type: str | None = None   # "classifier" | "regressor"
+        self.classes_: np.ndarray | None = None
+        self._train_time: float | None = None
+        self._loss_history: list[float] = []
 
     # ── helpers ───────────────────────────────────────────────────────────────
 
@@ -191,7 +190,7 @@ class ANNModel(BaseModel):
 
     # ── BaseModel interface ───────────────────────────────────────────────────
 
-    def fit(self, X: np.ndarray, y: Optional[np.ndarray] = None) -> "ANNModel":
+    def fit(self, X: np.ndarray, y: np.ndarray | None = None) -> "ANNModel":
         """Train the network.
 
         Parameters
@@ -350,7 +349,7 @@ class ANNModel(BaseModel):
         else:
             return logits.squeeze(1).numpy().astype(np.float64)  # (n,)
 
-    def predict_proba(self, X: np.ndarray) -> Optional[np.ndarray]:
+    def predict_proba(self, X: np.ndarray) -> np.ndarray | None:
         """Return class probabilities for classifiers; None for regressors.
 
         Returns
@@ -371,10 +370,6 @@ class ANNModel(BaseModel):
         if X.ndim != 2:
             return None
 
-        if X.ndim != 2:
-            raise ValueError(
-                f"X must be a 2-D array, got shape {X.shape}."
-            )
         if X.shape[1] != self.n_features:
             raise ValueError(
                 f"Model was trained on {self.n_features} features, "
@@ -388,7 +383,7 @@ class ANNModel(BaseModel):
 
         return proba.astype(np.float64)
 
-    def get_metadata(self) -> Dict:
+    def get_metadata(self) -> dict:
         """Return the standard metadata dict required by §8.
 
         ``feature_importance`` is not natively available for MLPs; the field
@@ -406,7 +401,7 @@ class ANNModel(BaseModel):
 
     # ── optional visualisation data ───────────────────────────────────────────
 
-    def get_visualization_data(self) -> Optional[Dict]:
+    def get_visualization_data(self) -> dict | None:
         """Return training-loss curve data for the frontend to render.
 
         The loss history lets the UI plot an epoch-vs-loss learning curve,
