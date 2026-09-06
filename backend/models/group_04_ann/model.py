@@ -17,7 +17,7 @@ import time
 
 import numpy as np
 import torch
-import torch.nn as nn
+from torch import nn
 from torch.utils.data import DataLoader, TensorDataset
 
 from models.base_model import BaseModel
@@ -117,7 +117,7 @@ class ANNModel(BaseModel):
 
     def __init__(
         self,
-        hidden_sizes: list[int] = None,
+        hidden_sizes: list[int] | None = None,
         activation: str = "relu",
         lr: float = 1e-3,
         epochs: int = 100,
