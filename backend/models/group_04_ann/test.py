@@ -67,9 +67,8 @@ class TestANNModel(unittest.TestCase):
         ]
 
         for parameters in invalid_parameters:
-            with self.subTest(parameters=parameters):
-                with self.assertRaises(ValueError):
-                    ANNModel(**parameters)
+            with self.subTest(parameters=parameters), self.assertRaises(ValueError):
+                ANNModel(**parameters)
 
     def test_all_supported_activations_build_network(self) -> None:
         for activation in ("relu", "tanh", "leaky_relu", "elu"):
